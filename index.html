@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<title>جنگ جهانی متنی</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+/* polish */
+.card{transition:transform .15s,box-shadow .15s}
+.card:active{transform:scale(.98)}
+.btn,.btn-g,.btn-r{transition:opacity .15s,transform .1s}
+.btn:active,.btn-g:active,.btn-r:active{transform:scale(.96);opacity:.9}
+@keyframes pulse-soft{0%,100%{opacity:1}50%{opacity:.7}}
+.animate-pulse{animation:pulse-soft 1.5s infinite}
+
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap');
+*{font-family:'Vazirmatn',sans-serif}
+body{background:#0f172a;color:#e2e8f0}
+.card{background:#1e293b;border:1px solid #334155}
+.btn{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.btn-g{background:linear-gradient(135deg,#22c55e,#15803d)}
+.btn-r{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+input,textarea,select{background:#0f172a;border:1px solid #475569;color:#fff}
+</style>
+</head>
+<body class="min-h-screen">
+<div id="auth" class="min-h-screen flex items-center justify-center p-4">
+<div class="card rounded-2xl p-6 w-full max-w-md">
+<h1 class="text-2xl font-bold text-center mb-1">⚔️ جنگ جهانی متنی</h1>
+<p class="text-center text-slate-400 text-sm mb-5">نسخه آنلاین موبایل</p>
+<div class="flex mb-4 border-b border-slate-700">
+<button id="tLogin" onclick="swAuth('login')" class="flex-1 py-2 text-blue-400 border-b-2 border-blue-400">ورود</button>
+<button id="tReg" onclick="swAuth('reg')" class="flex-1 py-2 text-slate-400">ثبت‌نام</button>
+</div>
+<div id="fLogin">
+<input id="lUser" placeholder="نام کاربری" class="w-full p-3 rounded-lg mb-2">
+<input id="lPass" type="password" placeholder="رمز عبور" class="w-full p-3 rounded-lg mb-2">
+<p class="text-xs text-slate-400 mb-2 text-center">یا ورود با موبایل:</p>
+<input id="lPhone" placeholder="09xxxxxxxxx" class="w-full p-3 rounded-lg mb-2" maxlength="11" inputmode="numeric" pattern="09[0-9]{9}">
+<div class="flex gap-2 mb-2">
+<input id="lOtp" placeholder="کد ۶ رقمی" class="flex-1 p-3 rounded-lg" maxlength="6" inputmode="numeric">
+<button onclick="sendOtp('login')" class="btn px-3 rounded-lg text-sm">ارسال کد</button>
+</div>
+<p id="lOtpHint" class="text-xs text-green-400 mb-2 text-center hidden"></p>
+<button onclick="login()" class="btn w-full py-3 rounded-lg font-medium">ورود</button>
+</div>
+<div id="fReg" class="hidden">
+<input id="rUser" placeholder="نام کاربری (حداقل ۳ حرف)" class="w-full p-3 rounded-lg mb-2">
+<input id="rPass" type="password" placeholder="رمز عبور" class="w-full p-3 rounded-lg mb-2">
+<input id="rPhone" placeholder="شماره موبایل 09xxxxxxxxx" class="w-full p-3 rounded-lg mb-2" maxlength="11" inputmode="numeric" pattern="09[0-9]{9}">
+<div class="flex gap-2 mb-2">
+<input id="rOtp" placeholder="کد ۶ رقمی" class="flex-1 p-3 rounded-lg" maxlength="6" inputmode="numeric">
+<button onclick="sendOtp('register')" class="btn-g px-3 rounded-lg text-sm">ارسال کد</button>
+</div>
+<p id="rOtpHint" class="text-xs text-green-400 mb-2 text-center hidden"></p>
+<button onclick="register()" class="btn-g w-full py-3 rounded-lg font-medium">ثبت‌نام</button>
+</div>
+<p id="err" class="text-red-400 text-sm mt-3 text-center"></p>
+</div>
+</div>
+
+<div id="app" class="hidden pb-16">
+<header class="bg-slate-900 border-b border-slate-700 p-3 sticky top-0 z-40 flex justify-between items-center">
+<div><b>⚔️ جنگ جهانی</b><p id="hUser" class="text-xs text-slate-400"></p></div>
+<button onclick="logout()" class="text-red-400 text-sm">خروج</button>
+</header>
+<main id="main" class="p-3"></main>
+<nav class="fixed bottom-0 inset-x-0 bg-slate-900 border-t border-slate-700 flex justify-around py-2 text-xs z-40 overflow-x-auto">
+<button onclick="page('dash')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🏠</span>داشبورد</button>
+<button onclick="page('countries')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🌍</span>کشورها</button>
+<button onclick="page('map')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🗺️</span>نقشه</button>
+<button onclick="page('world')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🌐</span>جهان</button>
+<button onclick="page('act')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">✍️</span>اقدامات</button>
+<button onclick="page('shop')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🛒</span>فروشگاه</button>
+<button onclick="page('arsenal')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🎖️</span>نیروها</button>
+<button onclick="page('skills')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🌳</span>مهارت</button>
+<button onclick="page('prod')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🏭</span>تولید</button>
+<button onclick="page('market')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🕶️</span>بازار</button>
+<button onclick="page('battles')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">⚔️</span>نبرد</button>
+<button onclick="page('alliance')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🤝</span>اتحاد</button>
+<button onclick="page('chat')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">💬</span>چت</button>
+<button onclick="page('pm')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">✉️</span>خصوصی</button>
+<button onclick="page('notif')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🔔</span>اعلان</button>
+<button onclick="page('rank')" class="flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">🏆</span>رتبه</button>
+<button id="adminBtn" onclick="page('admin')" class="hidden flex flex-col items-center p-1 min-w-[50px]"><span class="text-lg">⚙️</span>ادمین</button>
+</nav>
+</div>
+
+<script>
+const API=location.origin;
+let token=localStorage.token, user=JSON.parse(localStorage.user||'null'), my=null, sock=null;
+
+function swAuth(t){
+  document.getElementById('fLogin').classList.toggle('hidden',t!=='login');
+  document.getElementById('fReg').classList.toggle('hidden',t!=='reg');
+  document.getElementById('tLogin').className=t==='login'?'flex-1 py-2 text-blue-400 border-b-2 border-blue-400':'flex-1 py-2 text-slate-400';
+  document.getElementById('tReg').className=t==='reg'?'flex-1 py-2 text-blue-400 border-b-2 border-blue-400':'flex-1 py-2 text-slate-400';
+}
+function isValidPhone(p){
+  return /^09\d{9}$/.test(p);
+}
+async function sendOtp(purpose){
+  const phone = purpose==='register' ? rPhone.value.trim() : lPhone.value.trim();
+  const hint = purpose==='register' ? rOtpHint : lOtpHint;
+  err.textContent = '';
+  if(!isValidPhone(phone)){
+    err.textContent = 'شماره موبایل معتبر نیست. باید دقیقاً ۱۱ رقم باشد';
+    return;
+  }
+  try{
+    const r=await fetch(API+'/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone, purpose})});
+    const d=await r.json(); if(!r.ok)throw new Error(d.error);
+    hint.classList.remove('hidden');
+    hint.textContent = d.dev_code ? ('کد تأیید (تست): ' + d.dev_code) : 'کد ارسال شد';
+  }catch(e){err.textContent=e.message}
+}
+async function login(){
+  try{
+    const body = {};
+    if(lPhone.value.trim() && lOtp.value.trim()){
+      body.phone = lPhone.value.trim();
+      body.otp = lOtp.value.trim();
+    } else {
+      body.username = lUser.value.trim();
+      body.password = lPass.value;
+    }
+    const r=await fetch(API+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json(); if(!r.ok)throw new Error(d.error);
+    token=d.token; user=d.user; localStorage.token=token; localStorage.user=JSON.stringify(user); start();
+  }catch(e){err.textContent=e.message}
+}
+async function register(){
+  err.textContent = '';
+  const phone = rPhone.value.trim();
+  if(!isValidPhone(phone)){
+    err.textContent = 'شماره موبایل معتبر نیست. باید دقیقاً ۱۱ رقم باشد';
+    return;
+  }
+  if(!rOtp.value.trim() || rOtp.value.trim().length !== 6){
+    err.textContent = 'کد تأیید باید ۶ رقم باشد';
+    return;
+  }
+  try{
+    const r=await fetch(API+'/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      username:rUser.value.trim(), password:rPass.value, phone, otp:rOtp.value.trim()
+    })});
+    const d=await r.json(); if(!r.ok)throw new Error(d.error);
+    token=d.token; user=d.user; localStorage.token=token; localStorage.user=JSON.stringify(user); start();
+  }catch(e){err.textContent=e.message}
+}
+async function logout(){
+  try{ if(token) await api('/api/logout',{method:'POST'}); }catch(e){}
+  localStorage.clear(); location.reload();
+}
+async function api(p,o={}){
+  const r=await fetch(API+p,{...o,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,...(o.headers||{})}});
+  const d=await r.json(); if(!r.ok)throw new Error(d.error||'خطا'); return d;
+}
+async function start(){
+  auth.classList.add('hidden'); app.classList.remove('hidden');
+  hUser.textContent=user.username+(user.is_admin?' (ادمین)':'');
+  if(user.is_admin) document.getElementById('adminBtn').classList.remove('hidden');
+  sock=io(); sock.emit('join',{username:user.username});
+  await loadMy(); page('dash');
+}
+async function loadMy(){try{const d=await api('/api/my-country'); my=d.has_country?d:null}catch{}}
+function page(n){
+  const m=document.getElementById('main');
+  if(n==='dash')dash(m); else if(n==='countries')countries(m); else if(n==='act')act(m);
+  else if(n==='shop')shop(m); else if(n==='chat')chat(m); else if(n==='rank')rank(m);
+  else if(n==='alliance')alliancePage(m); else if(n==='admin')adminPage(m);
+  else if(n==='map')mapPage(m); else if(n==='notif')notifPage(m); else if(n==='pm')pmPage(m); else if(n==='arsenal')arsenalPage(m); else if(n==='battles')battlesPage(m); else if(n==='skills')skillsPage(m); else if(n==='world')worldPage(m); else if(n==='prod')prodPage(m); else if(n==='market')marketPage(m);
+}
+async function dash(el){
+  await loadMy();
+  let seasonInfo = '';
+  try {
+    const s = await api('/api/season');
+    if (s.season) seasonInfo = `<div class="card rounded-xl p-2 mb-3 text-center text-sm"><span class="text-yellow-400">🏆 ${s.season.name}</span> — ${s.season.status==='active'?'فعال':'پایان‌یافته'}${s.season.winner?' | قهرمان: '+s.season.winner.flag+' '+s.season.winner.country:''}</div>`;
+  } catch(e){}
+
+  if(!my){el.innerHTML=`<div class="card rounded-xl p-6 text-center"><p class="mb-4">کشور انتخاب نکرده‌اید</p><button onclick="page('countries')" class="btn px-5 py-2 rounded-lg">انتخاب کشور</button></div>`;return}
+  const c=my.country;
+  const conquered = c.conquered || [];
+  el.innerHTML=`${seasonInfo}
+  <div class="card rounded-xl p-4 mb-3">
+    <div class="flex gap-3 items-center mb-3"><span class="text-4xl">${c.flag}</span><div><b class="text-xl">${c.name}</b><p class="text-sm text-slate-400">${c.description||''}</p></div></div>
+    <div class="grid grid-cols-3 gap-2 text-center text-sm">
+      <div class="bg-slate-800 rounded-lg p-2"><p class="text-slate-400 text-xs">بودجه</p><b class="text-green-400">${c.budget}$</b></div>
+      <div class="bg-slate-800 rounded-lg p-2"><p class="text-slate-400 text-xs">درآمد</p><b class="text-blue-400">${c.income}$</b></div>
+      <div class="bg-slate-800 rounded-lg p-2"><p class="text-slate-400 text-xs">قدرت</p><b class="text-red-400">${c.military_power}</b></div>
+    </div>
+    <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+      <div class="bg-green-900/30 rounded p-2"><p class="text-green-400 mb-1">✅ مزایای کشور</p>${(c.advantages||[]).map(a=>'<p>• '+a+'</p>').join('')||'—'}</div>
+      <div class="bg-red-900/30 rounded p-2"><p class="text-red-400 mb-1">❌ معایب کشور</p>${(c.disadvantages||[]).map(d=>'<p>• '+d+'</p>').join('')||'—'}</div>
+    </div>
+  </div>
+  ${conquered.length ? `<div class="card rounded-xl p-4 mb-3">
+    <b class="text-yellow-400">🏰 کشورهای فتح‌شده</b>
+    <div class="mt-2 space-y-2">${conquered.map(x => `
+      <div class="bg-slate-800 rounded p-2 text-sm">
+        <b>${x.flag||''} ${x.name}</b>
+        <div class="grid grid-cols-2 gap-1 mt-1 text-xs">
+          <div class="text-green-400">${(x.advantages||[]).map(a=>'• '+a).join('<br>')||'—'}</div>
+          <div class="text-red-400">${(x.disadvantages||[]).map(d=>'• '+d).join('<br>')||'—'}</div>
+        </div>
+      </div>`).join('')}</div>
+  </div>` : ''}
+  <div class="card rounded-xl p-4 mb-3">
+    <b>🎖️ زرادخانه من</b>
+    ${unitTabsHtml(invTab||'all','setInvTab')}
+    <div id="invBox" class="space-y-1 text-sm max-h-40 overflow-y-auto">${renderInvItems(my.equipment||[], invTab||'all')}</div>
+  </div>
+  <div class="card rounded-xl p-4 mb-3"><b>بیانیه‌ها</b><div class="mt-2 space-y-1 max-h-32 overflow-y-auto text-sm">${(my.statements||[]).map(s=>`<div class="bg-slate-800 rounded p-2">${s.content}</div>`).join('')||'<p class="text-slate-500">خالی</p>'}</div></div>
+  <div class="card rounded-xl p-4"><b>رول‌ها</b><div class="mt-2 space-y-1 max-h-32 overflow-y-auto text-sm">${(my.roles||[]).map(r=>`<div class="bg-slate-800 rounded p-2">${r.title} <span class="text-xs ${r.status==='approved'?'text-green-400':r.status==='rejected'?'text-red-400':'text-yellow-400'}">(${r.status})</span></div>`).join('')||'<p class="text-slate-500">خالی</p>'}</div></div>`;
+}
+async function countries(el){
+  el.innerHTML='بارگذاری...';
+  try{
+    const list=await api('/api/countries');
+    el.innerHTML=`<h2 class="font-bold mb-3">انتخاب کشور</h2>
+    <p class="text-xs text-slate-400 mb-3">هر کشور مزایا و معایب مخصوص خودش را دارد</p>
+    <div class="space-y-3">${list.map(c=>`
+      <div class="card rounded-xl p-3" style="border-right:4px solid ${c.color||'#64748b'}">
+        <div class="flex justify-between items-start">
+          <div class="flex gap-2 items-center">
+            <span class="text-2xl">${c.flag}</span>
+            <div>
+              <b>${c.name}${c.is_vip?' ⭐VIP':''}</b>
+              <p class="text-xs text-slate-400">${c.region||''} | بودجه پایه: ${c.base_budget}$</p>
+              ${c.taken?`<p class="text-xs text-red-400">گرفته شده توسط ${c.owner}</p>`:''}
+            </div>
+          </div>
+          ${!c.taken&&!my?`<button onclick="choose('${c.id}')" class="btn text-sm px-3 py-1 rounded">انتخاب</button>`:''}
+        </div>
+        <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-green-900/30 rounded p-2">
+            <p class="text-green-400 font-medium mb-1">✅ مزایا</p>
+            ${(c.advantages||[]).map(a=>`<p>• ${a}</p>`).join('')||'<p class="text-slate-500">—</p>'}
+          </div>
+          <div class="bg-red-900/30 rounded p-2">
+            <p class="text-red-400 font-medium mb-1">❌ معایب</p>
+            ${(c.disadvantages||[]).map(d=>`<p>• ${d}</p>`).join('')||'<p class="text-slate-500">—</p>'}
+          </div>
+        </div>
+      </div>`).join('')}</div>`;
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+async function choose(id){try{await api('/api/choose-country',{method:'POST',body:JSON.stringify({country_id:id})});alert('انتخاب شد');await loadMy();page('dash')}catch(e){alert(e.message)}}
+function act(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  const reviewerBox = (id) => `<div class="mt-2 text-sm">
+    <p class="text-slate-400 mb-1">بررسی توسط:</p>
+    <div class="flex gap-2">
+      <label class="flex-1 card rounded-lg p-2 flex items-center gap-2 cursor-pointer"><input type="radio" name="${id}" value="ai" checked> 🤖 ربات AI</label>
+      <label class="flex-1 card rounded-lg p-2 flex items-center gap-2 cursor-pointer"><input type="radio" name="${id}" value="admin"> 👤 ادمین</label>
+    </div>
+  </div>`;
+  el.innerHTML=`
+  <div class="card rounded-xl p-4 mb-3"><b>بیانیه</b>
+  <textarea id="st" rows="2" class="w-full p-2 rounded mt-2 text-sm" placeholder="متن بیانیه..."></textarea>
+  ${reviewerBox('revSt')}
+  <button onclick="sendSt()" class="btn w-full mt-2 py-2 rounded text-sm">ارسال</button></div>
+  <div class="card rounded-xl p-4 mb-3"><b>رول</b>
+  <select id="rt" class="w-full p-2 rounded mt-2 text-sm"><option value="economic">اقتصادی</option><option value="military">نظامی</option><option value="defense">دفاعی</option><option value="spy">جاسوسی</option><option value="sabotage">خرابکاری</option></select>
+  <input id="rti" placeholder="عنوان" class="w-full p-2 rounded mt-2 text-sm">
+  <textarea id="rc" rows="2" class="w-full p-2 rounded mt-2 text-sm" placeholder="جزئیات..."></textarea>
+  <input id="rco" type="number" placeholder="هزینه" class="w-full p-2 rounded mt-2 text-sm">
+  ${reviewerBox('revRole')}
+  <button onclick="sendRole()" class="btn-g w-full mt-2 py-2 rounded text-sm">ارسال رول</button></div>
+  <div class="card rounded-xl p-4"><b>سناریو حمله</b>
+  <input id="sct" placeholder="نام عملیات" class="w-full p-2 rounded mt-2 text-sm">
+  <select id="scDef" class="w-full p-2 rounded mt-2 text-sm"><option value="">هدف (اختیاری - بعداً از لیست)</option></select>
+  <textarea id="scc" rows="3" class="w-full p-2 rounded mt-2 text-sm" placeholder="سناریو کامل..."></textarea>
+  ${reviewerBox('revSc')}
+  <button onclick="sendSc()" class="btn-r w-full mt-2 py-2 rounded text-sm">ارسال سناریو</button></div>`;
+  // load defenders
+  api('/api/players').then(ps=>{
+    const sel=document.getElementById('scDef');
+    if(!sel)return;
+    ps.filter(p=>p.username!==user.username).forEach(p=>{
+      const o=document.createElement('option');
+      o.value=p.id; o.textContent=(p.flag||'')+' '+p.name+' ('+p.username+')';
+      sel.appendChild(o);
+    });
+  }).catch(()=>{});
+}
+function getReviewer(name){
+  const el = document.querySelector('input[name="'+name+'"]:checked');
+  return el ? el.value : 'ai';
+}
+async function sendSt(){
+  try{
+    await api('/api/statement',{method:'POST',body:JSON.stringify({content:st.value.trim(), reviewer: getReviewer('revSt')})});
+    alert(getReviewer('revSt')==='ai' ? 'ارسال شد — ربات AI بررسی می‌کند' : 'ارسال شد — منتظر ادمین');
+    st.value='';
+  }catch(e){alert(e.message)}
+}
+async function sendRole(){
+  try{
+    await api('/api/role',{method:'POST',body:JSON.stringify({type:rt.value,title:rti.value.trim(),content:rc.value.trim(),budget_cost:+rco.value||0, reviewer: getReviewer('revRole')})});
+    alert(getReviewer('revRole')==='ai' ? 'رول ارسال شد — ربات AI بررسی می‌کند' : 'رول ارسال شد — منتظر تأیید ادمین');
+    page('dash');
+  }catch(e){alert(e.message)}
+}
+async function sendSc(){
+  try{
+    await api('/api/scenario',{method:'POST',body:JSON.stringify({title:sct.value.trim(),content:scc.value.trim(), defender_country_id: scDef.value||null, reviewer: getReviewer('revSc')})});
+    alert(getReviewer('revSc')==='ai' ? 'سناریو ارسال شد — ربات AI نتیجه می‌دهد' : 'سناریو ارسال شد — منتظر ادمین');
+  }catch(e){alert(e.message)}
+}
+const UNIT_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'jet', label: 'جت' },
+  { key: 'land', label: 'تانک' },
+  { key: 'sea', label: 'دریایی' },
+  { key: 'defense', label: 'پدافند' },
+  { key: 'missile', label: 'موشک' },
+  { key: 'drone', label: 'پهپاد' },
+  { key: 'infantry', label: 'پیاده' },
+  { key: 'nuclear', label: 'هسته‌ای' }
+];
+let shopTab = 'all';
+let shopList = [];
+
+function unitTabsHtml(active, onClickName){
+  return `<div class="flex gap-1 overflow-x-auto pb-2 mb-3">${UNIT_TABS.map(t =>
+    `<button onclick="${onClickName}('${t.key}')" class="px-3 py-1 rounded-full text-xs whitespace-nowrap ${active===t.key?'bg-blue-600 text-white':'bg-slate-800 text-slate-300'}">${t.label}</button>`
+  ).join('')}</div>`;
+}
+
+function filterUnits(list, tab){
+  if(tab==='all') return list;
+  return list.filter(e => e.type === tab);
+}
+
+let shopMeta = { remaining_seconds: 0 };
+let shopTimer = null;
+
+async function shop(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  el.innerHTML='بارگذاری فروشگاه...';
+  try{
+    const data = await api('/api/equipment');
+    // پشتیبانی از فرمت جدید و قدیم
+    shopList = data.items || data;
+    shopMeta = {
+      remaining_seconds: data.remaining_seconds || 0,
+      expires_at: data.expires_at
+    };
+    renderShopList(el);
+    startShopCountdown();
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+function startShopCountdown(){
+  if(shopTimer) clearInterval(shopTimer);
+  shopTimer = setInterval(()=>{
+    shopMeta.remaining_seconds = Math.max(0, (shopMeta.remaining_seconds||0) - 1);
+    const t = document.getElementById('shopTimer');
+    if(t) t.textContent = formatShopTime(shopMeta.remaining_seconds);
+    if(shopMeta.remaining_seconds <= 0){
+      clearInterval(shopTimer);
+      shop(document.getElementById('main'));
+    }
+  }, 1000);
+}
+
+function formatShopTime(sec){
+  const m = Math.floor(sec/60);
+  const s = sec % 60;
+  return m + ':' + String(s).padStart(2,'0');
+}
+
+function setShopTab(tab){
+  shopTab = tab;
+  renderShopList(document.getElementById('main'));
+}
+
+function renderShopList(el){
+  if(!el) return;
+  const list = filterUnits(shopList, shopTab);
+  el.innerHTML = `<h2 class="font-bold mb-1">🛒 فروشگاه</h2>
+    <div class="card rounded-xl p-2 mb-2 text-center text-sm">
+      <span class="text-yellow-400">آپدیت فروشگاه تا </span>
+      <b id="shopTimer" class="text-white">${formatShopTime(shopMeta.remaining_seconds||0)}</b>
+      <span class="text-slate-400 text-xs block mt-1">هر بازیکن فروشگاه شانسی جدا دارد — موجودی محدود (×تعداد)</span>
+    </div>
+    <p class="text-sm text-slate-400 mb-2">بودجه: <b class="text-green-400">${my.country.budget}$</b></p>
+    ${unitTabsHtml(shopTab, 'setShopTab')}
+    <div class="space-y-2">${list.length ? list.map(e=>{
+      const id = e.equipment_id || e.id;
+      const stock = e.stock != null ? e.stock : 99;
+      const chance = e.chance != null ? e.chance : '-';
+      const locked = e.locked;
+      return `<div class="card rounded-xl p-3 flex justify-between items-center ${locked?'opacity-60':''}">
+      <div>
+        <b>${e.name}</b>
+        <p class="text-xs text-slate-400">${typeLabel(e.type)} | قدرت +${e.power}</p>
+        <p class="text-xs text-yellow-400 mt-1">شانس حضور: ${chance}٪</p>
+        <p class="text-xs text-blue-400">موجودی فروشگاه: ×${stock}</p>
+        ${locked?'<p class="text-xs text-red-400 mt-1">🔒 نیاز به مهارت (درخت مهارت)</p>':''}
+      </div>
+      <div class="text-left">
+        <b class="text-green-400">${e.price}$</b>
+        <br>${locked
+          ? '<span class="text-xs text-red-400">قفل</span>'
+          : `<button onclick="buy('${id}')" class="btn text-xs px-2 py-1 rounded mt-1" ${stock<1?'disabled':''}>خرید ×1</button>`}
+      </div>
+    </div>`;
+    }).join('') : '<p class="text-slate-500 text-sm text-center py-4">در این دسته چیزی برای خرید نیست — صبر کنید فروشگاه آپدیت شود</p>'}</div>`;
+}
+
+let invTab = 'all';
+function renderInvItems(list, tab){
+  const filtered = filterUnits(list.map(e=>({...e, type:e.type})), tab);
+  if(!filtered.length) return '<p class="text-slate-500">خالی</p>';
+  return filtered.map(e=>`<div class="bg-slate-800 rounded p-2 flex justify-between"><span>${e.name}</span><span class="text-slate-400">×${e.quantity||1} | +${e.power}</span></div>`).join('');
+}
+function setInvTab(tab){
+  invTab = tab;
+  const box = document.getElementById('invBox');
+  if(box && my) box.innerHTML = renderInvItems(my.equipment||[], invTab);
+}
+function typeLabel(t){
+  const m = {jet:'جت', land:'تانک', sea:'دریایی', defense:'پدافند', missile:'موشک', drone:'پهپاد', infantry:'پیاده', nuclear:'هسته‌ای'};
+  return m[t] || t;
+}
+
+async function buy(id){
+  try{
+    await api('/api/buy-equipment',{method:'POST', body:JSON.stringify({equipment_id:id, quantity:1})});
+    alert('خرید شد (×1)');
+    await loadMy();
+    shop(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+function chat(el){
+  el.innerHTML=`<div class="card rounded-xl p-3 h-[65vh] flex flex-col">
+  <div id="cbox" class="flex-1 overflow-y-auto space-y-2 mb-2 text-sm"></div>
+  <div class="flex gap-2"><input id="cin" class="flex-1 p-2 rounded text-sm" placeholder="پیام..." onkeypress="if(event.key==='Enter')sendC()">
+  <button onclick="sendC()" class="btn px-4 rounded">ارسال</button></div></div>`;
+  loadC(); if(sock){sock.off('chat');sock.on('chat',m=>addC(m))}
+}
+async function loadC(){try{const ms=await api('/api/chat');cbox.innerHTML='';ms.forEach(addC);cbox.scrollTop=cbox.scrollHeight}catch{}}
+function addC(m){if(!cbox)return;const d=document.createElement('div');d.className='bg-slate-800 rounded p-2';d.innerHTML=`<b class="text-blue-400">${m.username}</b> ${m.country_name?'<span class="text-xs text-slate-500">('+m.country_name+')</span>':''}<br>${m.message}`;cbox.appendChild(d);cbox.scrollTop=cbox.scrollHeight}
+function sendC(){const v=cin.value.trim();if(!v||!sock)return;sock.emit('chat',{user_id:user.id,username:user.username,country_name:my?.country?.name||'',message:v});cin.value=''}
+async function rank(el){
+  el.innerHTML='بارگذاری...';
+  try{
+    const ps=await api('/api/players');
+    el.innerHTML=`<h2 class="font-bold mb-3">رتبه‌بندی</h2><div class="space-y-2">${ps.map((p,i)=>`
+      <div class="card rounded-xl p-3 flex items-center gap-3">
+        <b class="w-6">${i+1}</b><span class="text-2xl">${p.flag}</span>
+        <div class="flex-1"><b>${p.name}</b><p class="text-xs text-slate-400">${p.username}</p></div>
+        <div class="text-sm text-left"><span class="text-red-400">⚔️${p.military_power}</span><br><span class="text-green-400">${p.budget}$</span></div>
+      </div>`).join('')||'<p class="text-slate-500">خالی</p>'}</div>`;
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+// ========== Alliance ==========
+async function alliancePage(el){
+  el.innerHTML = '<p class="text-center text-slate-400">بارگذاری اتحادها...</p>';
+  try {
+    const myA = await api('/api/my-alliance');
+    const data = await api('/api/alliances');
+    const list = data.alliances || data;
+    const cost = data.create_cost || myA.create_cost || 200;
+    let requests = [];
+    if (myA.has_alliance && myA.is_leader) {
+      try { requests = await api('/api/alliances/requests'); } catch(e){}
+    }
+
+    let html = '<h2 class="font-bold text-lg mb-3">🤝 سیستم اتحاد</h2>';
+
+    if (myA.has_alliance) {
+      html += `<div class="card rounded-xl p-4 mb-3">
+        <b class="text-blue-400">${myA.alliance.name}</b>
+        ${myA.is_leader ? '<span class="text-xs text-yellow-400 mr-2"> (رهبر)</span>' : ''}
+        <p class="text-sm text-slate-400 mt-1">${myA.alliance.description || ''}</p>
+        <p class="text-xs mt-2">رهبر: ${myA.alliance.leader_country}</p>
+        <p class="text-xs">اعضا: ${myA.members.length} نفر</p>
+        <div class="mt-2 space-y-1">${myA.members.map(m => 
+          `<div class="bg-slate-800 rounded p-2 text-sm flex justify-between">
+            <span>${m.flag} ${m.name} (${m.username})</span>
+            <span class="text-red-400">⚔️${m.military_power}</span>
+          </div>`).join('')}</div>
+        <button onclick="leaveAlliance()" class="btn-r w-full mt-3 py-2 rounded text-sm">${myA.is_leader ? 'حذف اتحاد و ترک' : 'ترک اتحاد'}</button>
+      </div>`;
+
+      if (myA.is_leader && requests.length) {
+        html += '<h3 class="font-bold mb-2 text-yellow-400">📥 درخواست‌های عضویت</h3><div class="space-y-2 mb-4">';
+        requests.forEach(r => {
+          html += `<div class="card rounded-xl p-3">
+            <div class="flex justify-between items-center">
+              <div>
+                <b>${r.flag||''} ${r.country_name}</b>
+                <p class="text-xs text-slate-400">${r.username} | ⚔️${r.military_power||0}</p>
+              </div>
+              <div class="flex gap-1">
+                <button onclick="respondJoin('${r.id}',true)" class="btn-g text-xs px-2 py-1 rounded">قبول</button>
+                <button onclick="respondJoin('${r.id}',false)" class="btn-r text-xs px-2 py-1 rounded">رد</button>
+              </div>
+            </div>
+          </div>`;
+        });
+        html += '</div>';
+      }
+    } else {
+      html += `<div class="card rounded-xl p-4 mb-3">
+        <b>ساخت اتحاد جدید</b>
+        <p class="text-xs text-yellow-400 mt-1">هزینه ساخت: ${cost}$</p>
+        <input id="alName" placeholder="نام اتحاد" class="w-full p-2 rounded mt-2 text-sm">
+        <input id="alDesc" placeholder="توضیحات (اختیاری)" class="w-full p-2 rounded mt-2 text-sm">
+        <button onclick="createAlliance()" class="btn-g w-full mt-2 py-2 rounded text-sm">ساخت اتحاد (${cost}$)</button>
+      </div>`;
+    }
+
+    html += '<h3 class="font-bold mb-2 mt-4">اتحادهای موجود</h3><div class="space-y-2">';
+    if (!list.length) html += '<p class="text-slate-500 text-sm">هنوز اتحادی ساخته نشده</p>';
+    list.forEach(a => {
+      let btn = '';
+      if (!myA.has_alliance) {
+        if (a.my_request_pending) {
+          btn = '<span class="text-xs text-yellow-400">منتظر تأیید رهبر</span>';
+        } else {
+          btn = `<button onclick="joinAlliance('${a.id}')" class="btn text-xs px-3 py-1 rounded">درخواست عضویت</button>`;
+        }
+      }
+      html += `<div class="card rounded-xl p-3 flex justify-between items-center">
+        <div>
+          <b>${a.name}</b>
+          <p class="text-xs text-slate-400">رهبر: ${a.leader_country} | ${a.member_count} عضو</p>
+        </div>
+        ${btn}
+      </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<p class="text-red-400">${e.message}</p>`;
+  }
+}
+
+async function createAlliance(){
+  const name = document.getElementById('alName').value.trim();
+  const description = document.getElementById('alDesc').value.trim();
+  try {
+    const d = await api('/api/alliances', {method:'POST', body: JSON.stringify({name, description})});
+    alert('اتحاد ساخته شد. هزینه: ' + (d.cost||200) + '$');
+    await loadMy();
+    alliancePage(document.getElementById('main'));
+  } catch(e){ alert(e.message); }
+}
+
+async function joinAlliance(id){
+  try {
+    const d = await api('/api/alliances/join', {method:'POST', body: JSON.stringify({alliance_id: id})});
+    alert(d.message || 'درخواست ارسال شد. منتظر تأیید رهبر باشید.');
+    alliancePage(document.getElementById('main'));
+  } catch(e){ alert(e.message); }
+}
+
+async function respondJoin(requestId, accept){
+  try {
+    await api('/api/alliances/respond', {method:'POST', body: JSON.stringify({request_id: requestId, accept})});
+    alert(accept ? 'عضو پذیرفته شد' : 'درخواست رد شد');
+    alliancePage(document.getElementById('main'));
+  } catch(e){ alert(e.message); }
+}
+
+async function leaveAlliance(){
+  if(!confirm('مطمئن هستید؟ اگر رهبر باشید اتحاد حذف می‌شود.')) return;
+  try {
+    await api('/api/alliances/leave', {method:'POST'});
+    alert('انجام شد');
+    alliancePage(document.getElementById('main'));
+  } catch(e){ alert(e.message); }
+}
+
+// ========== Admin Panel ==========
+async function adminPage(el){
+  if(!user.is_admin){ el.innerHTML = '<p class="text-red-400 text-center">دسترسی ندارید</p>'; return; }
+  el.innerHTML = '<p class="text-center">بارگذاری پنل ادمین...</p>';
+  try {
+    const roles = await api('/api/admin/roles');
+    const scenarios = await api('/api/admin/scenarios');
+
+    let html = '<h2 class="font-bold text-lg mb-3">⚙️ پنل ادمین</h2>';
+
+    html += `<div class="card rounded-xl p-4 mb-3">
+      <button onclick="giveDailyIncome()" class="btn-g w-full py-2 rounded text-sm mb-2">💰 واریز درآمد روزانه همه کشورها</button>
+      <button onclick="endSeason()" class="btn-r w-full py-2 rounded text-sm mb-2">🏁 پایان سیزن و اعلام قهرمان</button>
+      <button onclick="runAI()" class="btn w-full py-2 rounded text-sm mb-2">🤖 اجرای دستی داور AI</button>
+      <button onclick="triggerEvent()" class="btn w-full py-2 rounded text-sm mb-2">🌍 رویداد تصادفی جهانی</button>
+    </div>`;
+    // AI settings
+    let ai = { enabled: true, auto_roles: true, auto_scenarios: true, interval_minutes: 2 };
+    try { ai = await api('/api/admin/ai-settings'); } catch(e){}
+    html += `<div class="card rounded-xl p-4 mb-3">
+      <b class="text-purple-400">🤖 داور هوش مصنوعی</b>
+      <p class="text-xs text-slate-400 mt-1 mb-2">وقتی ادمین آنلاین نیست، رول و سناریو را خودش بررسی می‌کند</p>
+      <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="aiEn" ${ai.enabled?'checked':''}> فعال باشد</label>
+      <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="aiRoles" ${ai.auto_roles!==false?'checked':''}> تأیید/رد خودکار رول</label>
+      <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="aiScen" ${ai.auto_scenarios!==false?'checked':''}> نتیجه خودکار سناریو حمله</label>
+      <div class="flex gap-2 items-center text-sm mb-2">
+        <span>هر</span>
+        <input id="aiMin" type="number" min="1" max="60" value="${ai.interval_minutes||2}" class="w-16 p-1 rounded text-center">
+        <span>دقیقه یک‌بار</span>
+      </div>
+      <button onclick="saveAI()" class="btn-g w-full py-2 rounded text-sm">ذخیره تنظیمات AI</button>
+    </div>`;
+
+    html += '<h3 class="font-bold mb-2">رول‌های در انتظار</h3>';
+    if(roles.length === 0) html += '<p class="text-slate-500 text-sm mb-3">رولی در انتظار نیست</p>';
+    else {
+      html += '<div class="space-y-2 mb-4">';
+      roles.forEach(r => {
+        html += `<div class="card rounded-xl p-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <b>${r.title}</b> <span class="text-xs text-slate-400">(${r.type})</span>
+              <p class="text-xs text-slate-400">${r.country_name} - ${r.username}</p>
+              <p class="text-xs ${r.reviewer==='admin'?'text-yellow-400':'text-purple-400'}">${r.reviewer==='admin'?'👤 درخواست ادمین':'🤖 درخواست AI'}</p>
+              <p class="text-sm mt-1">${r.content.substring(0,120)}${r.content.length>120?'...':''}</p>
+              <p class="text-xs text-yellow-400 mt-1">هزینه: ${r.budget_cost}$</p>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button onclick="resolveRole('${r.id}','approved',${Math.max(50, r.budget_cost*2)})" class="btn-g flex-1 py-1 rounded text-xs">تأیید (+پاداش)</button>
+            <button onclick="resolveRole('${r.id}','rejected',0)" class="btn-r flex-1 py-1 rounded text-xs">رد</button>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    html += '<h3 class="font-bold mb-2">سناریوهای در انتظار</h3>';
+    if(scenarios.length === 0) html += '<p class="text-slate-500 text-sm">سناریویی در انتظار نیست</p>';
+    else {
+      html += '<div class="space-y-2">';
+      scenarios.forEach(s => {
+        html += `<div class="card rounded-xl p-3">
+          <b>${s.title}</b>
+          <p class="text-xs text-slate-400">حمله: ${s.attacker_name} ${s.defender_name ? '→ '+s.defender_name : ''}</p>
+          <p class="text-xs ${s.reviewer==='admin'?'text-yellow-400':'text-purple-400'}">${s.reviewer==='admin'?'👤 درخواست ادمین':'🤖 درخواست AI'}</p>
+          <p class="text-sm mt-1">${s.content.substring(0,150)}${s.content.length>150?'...':''}</p>
+          <div class="flex gap-2 mt-2 flex-wrap">
+            <button onclick="startBattle('${s.id}')" class="btn flex-1 py-1 rounded text-xs">⚔️ شروع نبرد (اعزام نیرو)</button>
+            <button onclick="resolveScenario('${s.id}','پیروزی مهاجم',30)" class="btn-g flex-1 py-1 rounded text-xs">پیروزی فوری</button>
+            <button onclick="resolveScenario('${s.id}','شکست مهاجم',-20)" class="btn-r flex-1 py-1 rounded text-xs">شکست فوری</button>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<p class="text-red-400">${e.message}</p>`;
+  }
+}
+
+async function resolveRole(id, status, reward){
+  try {
+    await api('/api/admin/resolve-role', {method:'POST', body: JSON.stringify({role_id:id, status, reward})});
+    alert(status === 'approved' ? 'رول تأیید شد' : 'رول رد شد');
+    adminPage(document.getElementById('main'));
+  } catch(e){ alert(e.message); }
+}
+
+async function resolveScenario(id, result, power_change){
+  try {
+    await api('/api/admin/resolve-scenario', {method:'POST', body: JSON.stringify({scenario_id:id, result, power_change})});
+    alert('نتیجه ثبت شد: ' + result);
+    adminPage(document.getElementById('main'));
+  } catch(e){ alert(e.message); }
+}
+
+async function saveAI(){
+  try{
+    await api('/api/admin/ai-settings',{method:'POST',body:JSON.stringify({
+      enabled: document.getElementById('aiEn').checked,
+      auto_roles: document.getElementById('aiRoles').checked,
+      auto_scenarios: document.getElementById('aiScen').checked,
+      interval_minutes: +document.getElementById('aiMin').value || 2
+    })});
+    alert('تنظیمات AI ذخیره شد');
+  }catch(e){alert(e.message)}
+}
+async function triggerEvent(){
+  try{
+    const d = await api('/api/admin/random-event',{method:'POST'});
+    alert('رویداد: ' + (d.event?.title||'') + '\n' + (d.event?.text||''));
+  }catch(e){alert(e.message)}
+}
+async function runAI(){
+  try{
+    const d = await api('/api/admin/ai-run',{method:'POST'});
+    alert(d.message || 'اجرا شد');
+    adminPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+async function endSeason(){
+  if(!confirm('سیزن تمام شود و قهرمان اعلام گردد؟')) return;
+  try{
+    const d = await api('/api/admin/end-season',{method:'POST'});
+    alert('سیزن تمام شد. قهرمان: ' + (d.winner ? d.winner.flag+' '+d.winner.country : '?'));
+    adminPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+async function giveDailyIncome(){
+  if(!confirm('درآمد روزانه همه کشورها واریز شود؟')) return;
+  try {
+    await api('/api/daily-income', {method:'POST'});
+    alert('درآمد روزانه واریز شد');
+  } catch(e){ alert(e.message); }
+}
+
+
+// ========== World Map ==========
+async function mapPage(el){
+  el.innerHTML = '<p class="text-center text-slate-400">بارگذاری نقشه جهان...</p>';
+  try {
+    const data = await api('/api/map');
+    const { countries, activeWars, recentScenarios } = data;
+
+    let html = '<h2 class="font-bold text-lg mb-2">🗺️ نقشه جهان</h2>';
+    html += '<p class="text-xs text-slate-400 mb-3">کشورهای گرفته‌شده با رنگ خودشان مشخص شده‌اند. علامت ⚔️ یعنی جنگ فعال.</p>';
+
+    // Active wars banner
+    if (activeWars && activeWars.length > 0) {
+      html += '<div class="card rounded-xl p-3 mb-3 border border-red-500/50">';
+      html += '<b class="text-red-400">⚔️ جنگ‌های فعال</b>';
+      activeWars.forEach(w => {
+        html += `<div class="mt-2 text-sm flex items-center gap-2">
+          <span>${w.country1?.flag||''} ${w.country1?.name||'?'}</span>
+          <span class="text-red-400 font-bold">⚔️</span>
+          <span>${w.country2?.flag||''} ${w.country2?.name||'?'}</span>
+          <span class="text-xs text-slate-500">(${w.title})</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // Map grid by region
+    const regions = {};
+    countries.forEach(c => {
+      const r = c.region || 'سایر';
+      if (!regions[r]) regions[r] = [];
+      regions[r].push(c);
+    });
+
+    Object.keys(regions).forEach(region => {
+      html += `<h3 class="font-bold text-sm text-slate-300 mt-4 mb-2">${region}</h3>`;
+      html += '<div class="grid grid-cols-2 gap-2">';
+      regions[region].forEach(c => {
+        const bg = c.taken ? c.color : '#1e293b';
+        const border = c.taken ? c.color : '#334155';
+        // Check if in war
+        const inWar = (activeWars||[]).some(w =>
+          (w.country1 && w.country1.name === c.name) || (w.country2 && w.country2.name === c.name)
+        );
+        html += `<div class="rounded-xl p-3 relative" style="background:${bg}22;border:2px solid ${border}">
+          <div class="flex items-center gap-1">
+            <span class="text-xl">${c.flag}</span>
+            <b class="text-sm">${c.name}</b>
+            ${inWar ? '<span class="text-red-400 text-lg animate-pulse">⚔️</span>' : ''}
+          </div>
+          <p class="text-xs mt-1 opacity-80">${c.taken ? '👤 '+c.owner : 'آزاد'}</p>
+          ${c.taken ? `<p class="text-xs">⚔️ ${c.military_power}</p>` : ''}
+          <button onclick="showCountryInfo('${c.id}')" class="text-xs mt-1 underline opacity-70">جزئیات</button>
+        </div>`;
+      });
+      html += '</div>';
+    });
+
+    // Recent wars / scenarios section
+    html += '<h3 class="font-bold text-sm mt-5 mb-2">📜 آخرین نبردها و سناریوها</h3>';
+    if (!recentScenarios || recentScenarios.length === 0) {
+      html += '<p class="text-slate-500 text-sm">هنوز نبردی ثبت نشده</p>';
+    } else {
+      html += '<div class="space-y-2">';
+      recentScenarios.slice().reverse().forEach(s => {
+        const statusColor = s.status === 'pending' ? 'text-yellow-400' : 'text-green-400';
+        html += `<div class="card rounded-xl p-2 text-sm">
+          <div class="flex justify-between">
+            <b>${s.title}</b>
+            <span class="${statusColor} text-xs">${s.status === 'pending' ? 'در جریان' : (s.result || 'پایان‌یافته')}</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">
+            ${s.attacker ? s.attacker.flag + ' ' + s.attacker.name : '?'}
+            ${s.defender ? ' ⚔️ ' + s.defender.flag + ' ' + s.defender.name : ' (حمله عمومی)'}
+          </p>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // Legend
+    html += `<div class="mt-4 text-xs text-slate-500 card rounded-xl p-3">
+      <b>راهنما:</b><br>
+      • رنگ حاشیه = رنگ اختصاصی کشور<br>
+      • ⚔️ قرمز چشمک‌زن = درگیر جنگ<br>
+      • کشور آزاد = پس‌زمینه تیره
+    </div>`;
+
+    el.innerHTML = html;
+
+    // Store countries for detail popup
+    window._mapCountries = countries;
+  } catch(e) {
+    el.innerHTML = `<p class="text-red-400">${e.message}</p>`;
+  }
+}
+
+function showCountryInfo(id) {
+  const c = (window._mapCountries || []).find(x => x.id === id);
+  if (!c) return;
+  alert(
+    c.flag + ' ' + c.name + '\n\n' +
+    'منطقه: ' + (c.region||'-') + '\n' +
+    'وضعیت: ' + (c.taken ? 'در اختیار ' + c.owner : 'آزاد') + '\n' +
+    (c.taken ? 'قدرت نظامی: ' + c.military_power + '\n' : '') +
+    '\n✅ مزایا:\n' + (c.advantages||[]).map(a=>'• '+a).join('\n') +
+    '\n\n❌ معایب:\n' + (c.disadvantages||[]).map(d=>'• '+d).join('\n')
+  );
+}
+
+
+async function notifPage(el){
+  el.innerHTML='بارگذاری...';
+  try{
+    const list = await api('/api/notifications');
+    await api('/api/notifications/read',{method:'POST'}).catch(()=>{});
+    el.innerHTML = `<h2 class="font-bold mb-3">🔔 اعلان‌ها</h2>
+      <div class="space-y-2">${list.length?list.map(n=>`
+        <div class="card rounded-xl p-3 text-sm ${n.read?'opacity-60':''}">
+          <p>${n.text}</p>
+          <p class="text-xs text-slate-500 mt-1">${new Date(n.created_at).toLocaleString('fa')}</p>
+        </div>`).join(''):'<p class="text-slate-500">اعلانی نیست</p>'}</div>`;
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+async function pmPage(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  el.innerHTML='بارگذاری...';
+  try{
+    const [msgs, players] = await Promise.all([api('/api/pm'), api('/api/players')]);
+    const others = players.filter(p => p.username !== user.username);
+    el.innerHTML = `<h2 class="font-bold mb-3">✉️ پیام خصوصی</h2>
+      <div class="card rounded-xl p-3 mb-3">
+        <select id="pmTo" class="w-full p-2 rounded mb-2 text-sm">
+          <option value="">گیرنده را انتخاب کنید</option>
+          ${others.map(p=>`<option value="${p.id}">${p.flag} ${p.name} (${p.username})</option>`).join('')}
+        </select>
+        <textarea id="pmMsg" rows="2" class="w-full p-2 rounded text-sm mb-2" placeholder="متن پیام..."></textarea>
+        <button onclick="sendPm()" class="btn w-full py-2 rounded text-sm">ارسال</button>
+      </div>
+      <div class="space-y-2 max-h-64 overflow-y-auto">${msgs.length?msgs.slice().reverse().map(m=>`
+        <div class="card rounded-xl p-2 text-sm">
+          <p class="text-xs text-slate-400">${m.from_name} → ${m.to_name}</p>
+          <p>${m.message}</p>
+        </div>`).join(''):'<p class="text-slate-500 text-sm">پیامی نیست</p>'}</div>`;
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+async function sendPm(){
+  const to = document.getElementById('pmTo').value;
+  const message = document.getElementById('pmMsg').value.trim();
+  if(!to||!message){alert('گیرنده و پیام الزامی است');return}
+  try{
+    await api('/api/pm',{method:'POST',body:JSON.stringify({to_player_country_id:to,message})});
+    alert('ارسال شد');
+    pmPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+
+async function arsenalPage(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  el.innerHTML='بارگذاری...';
+  try{
+    const data = await api('/api/my-arsenal');
+    const list = data.equipment || [];
+    el.innerHTML = `<h2 class="font-bold mb-1">🎖️ نیروها و تجهیزات</h2>
+      <p class="text-sm text-slate-400 mb-2">قدرت کل: <b class="text-red-400">${data.military_power}</b> | بودجه: <b class="text-green-400">${data.budget}$</b></p>
+      ${unitTabsHtml(arsenalTab||'all','setArsenalTab')}
+      <div id="arsenalBox" class="space-y-2">${renderArsenal(list, arsenalTab||'all')}</div>`;
+    window._arsenalList = list;
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+let arsenalTab = 'all';
+function renderArsenal(list, tab){
+  const f = filterUnits(list, tab);
+  if(!f.length) return '<p class="text-slate-500 text-sm">چیزی در این دسته ندارید — از فروشگاه بخرید</p>';
+  return f.map(e=>`<div class="card rounded-xl p-3 flex justify-between items-center">
+    <div><b>${e.name}</b><p class="text-xs text-slate-400">${typeLabel(e.type)} | هر واحد +${e.power}</p></div>
+    <div class="text-left"><b class="text-lg">×${e.quantity}</b><p class="text-xs text-red-400">قدرت ${e.total_power}</p></div>
+  </div>`).join('');
+}
+function setArsenalTab(tab){
+  arsenalTab = tab;
+  const box = document.getElementById('arsenalBox');
+  if(box) box.innerHTML = renderArsenal(window._arsenalList||[], tab);
+}
+
+async function battlesPage(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  el.innerHTML='بارگذاری نبردها...';
+  try{
+    const [battles, arsenal] = await Promise.all([api('/api/my-battles'), api('/api/my-arsenal')]);
+    window._arsenalForBattle = arsenal.equipment || [];
+    if(!battles.length){
+      el.innerHTML = `<h2 class="font-bold mb-3">⚔️ نبردهای فعال</h2><p class="text-slate-500 text-sm">نبرد فعالی ندارید. وقتی سناریو توسط ادمین یا AI قبول شود اینجا می‌آید.</p>`;
+      return;
+    }
+    el.innerHTML = `<h2 class="font-bold mb-3">⚔️ نبردهای فعال</h2>` + battles.map(b => battleCard(b)).join('');
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+function battleCard(b){
+  const prog = Math.min(100, Math.max(0, b.progress ?? 50));
+  const sideLabel = b.my_side === 'attacker' ? 'مهاجم' : 'مدافع';
+  const tl = b.time_left_seconds || 0;
+  const tm = Math.floor(tl/60)+':'+String(tl%60).padStart(2,'0');
+  return `<div class="card rounded-xl p-4 mb-3 border border-red-500/30">
+    <div class="flex justify-between items-start mb-2">
+      <div>
+        <b>${b.title}</b>
+        <p class="text-xs text-slate-400 mt-1">شما: ${sideLabel} | ⏱ باقیمانده: ${tm}</p>
+        <p class="text-sm mt-1">${b.attacker_flag||''} ${b.attacker_name||'?'} ⚔️ ${b.defender_flag||''} ${b.defender_name||'؟'}</p>
+        <p class="text-xs text-yellow-400 mt-1">رسیدن نوار به ۱۰۰٪ = پایان و پیروزی همان طرف</p>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 mb-1">نوار پیشرفت (آبی مدافع — قرمز مهاجم)</p>
+    <div class="h-4 rounded-full bg-slate-800 overflow-hidden flex mb-1">
+      <div class="bg-blue-600 h-full transition-all" style="width:${100-prog}%"></div>
+      <div class="bg-red-500 h-full transition-all" style="width:${prog}%"></div>
+    </div>
+    <div class="flex justify-between text-xs mb-3">
+      <span class="text-blue-400">مدافع ${b.defender_power||0}</span>
+      <span>${prog}٪</span>
+      <span class="text-red-400">مهاجم ${b.attacker_power||0}</span>
+    </div>
+    <b class="text-sm">اعزام نیرو از زرادخانه:</b>
+    <div class="mt-2 space-y-2 max-h-40 overflow-y-auto" id="deploy-${b.id}">
+      ${(window._arsenalForBattle||[]).map(e => `
+        <div class="flex items-center gap-2 text-sm bg-slate-800 rounded p-2">
+          <span class="flex-1">${e.name} (×${e.quantity})</span>
+          <input type="number" min="0" max="${e.quantity}" value="0" data-eq="${e.equipment_id}" class="w-16 p-1 rounded text-center deploy-qty">
+        </div>`).join('') || '<p class="text-slate-500 text-xs">نیرویی ندارید</p>'}
+    </div>
+    <button onclick="deployForces('${b.id}')" class="btn-r w-full mt-3 py-2 rounded text-sm">🚀 اعزام به نبرد</button>
+  </div>`;
+}
+
+async function deployForces(scenarioId){
+  const box = document.getElementById('deploy-'+scenarioId);
+  if(!box) return;
+  const forces = [];
+  box.querySelectorAll('.deploy-qty').forEach(inp => {
+    const q = +inp.value || 0;
+    if(q > 0) forces.push({ equipment_id: inp.dataset.eq, quantity: q });
+  });
+  if(!forces.length){ alert('تعداد نیرو را مشخص کنید'); return; }
+  try{
+    const d = await api('/api/battle/deploy',{method:'POST',body:JSON.stringify({scenario_id:scenarioId, forces})});
+    if(d.finished) alert('نبرد تمام شد: ' + (d.result||''));
+    else alert('نیروها اعزام شدند! پیشرفت: ' + d.progress + '٪');
+    battlesPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+async function startBattle(id){
+  try{
+    await api('/api/admin/start-battle',{method:'POST',body:JSON.stringify({scenario_id:id})});
+    alert('نبرد شروع شد — بازیکنان می‌توانند نیرو اعزام کنند');
+    adminPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+
+let skillsTimer = null;
+
+async function skillsPage(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  el.innerHTML='بارگذاری درخت مهارت...';
+  try{
+    const data = await api('/api/skills');
+    window._skillsData = data;
+    renderSkills(el, data);
+    if(skillsTimer) clearInterval(skillsTimer);
+    skillsTimer = setInterval(()=>{
+      if(!window._skillsData) return;
+      let needRefresh = false;
+      (window._skillsData.in_progress||[]).forEach(u=>{
+        u.remaining_seconds = Math.max(0, u.remaining_seconds - 1);
+        if(u.remaining_seconds <= 0) needRefresh = true;
+      });
+      const box = document.getElementById('skillsRoot');
+      if(needRefresh) skillsPage(document.getElementById('main'));
+      else if(box) renderSkills(box.parentElement || document.getElementById('main'), window._skillsData);
+    }, 1000);
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+function fmtDuration(s){
+  s = Math.max(0, Math.floor(s||0));
+  const d = Math.floor(s/86400);
+  const h = Math.floor((s%86400)/3600);
+  const m = Math.floor((s%3600)/60);
+  if(d>0) return d+'روز و '+h+'ساعت';
+  if(h>0) return h+'س '+m+'د';
+  return m+'د '+ (s%60) +'ث';
+}
+function fmtSec(s){
+  const m = Math.floor(s/60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2,'0');
+}
+
+function renderSkills(el, data){
+  if(!el || !data) return;
+  const active = data.active_upgrades || 0;
+  const maxC = data.max_concurrent || 2;
+  let html = `<div id="skillsRoot">
+    <h2 class="font-bold text-lg mb-1">🌳 درخت مهارت</h2>
+    <div class="card rounded-xl p-3 mb-3 text-sm">
+      <p>بودجه: <b class="text-green-400">${data.budget}$</b></p>
+      <p>زرادخانه: <b>${data.arsenal_used}/${data.arsenal_capacity}</b></p>
+      <p class="text-yellow-400 mt-1">ارتقای همزمان: ${active}/${maxC}</p>
+      <p class="text-xs text-slate-400 mt-1">هر ارتقا پول + زمان می‌خواهد. حداکثر ۲ تا همزمان.</p>
+    </div>`;
+
+  if ((data.in_progress||[]).length) {
+    html += '<div class="card rounded-xl p-3 mb-3 border border-yellow-500/40"><b class="text-yellow-400">⏳ در حال ارتقا</b>';
+    data.in_progress.forEach(u => {
+      const pct = u.total_seconds ? Math.min(100, Math.round(100 * (1 - u.remaining_seconds / u.total_seconds))) : 0;
+      html += `<div class="mt-2">
+        <div class="flex justify-between text-sm"><span>${u.name} → لول ${u.target_level}</span><span>${fmtSec(u.remaining_seconds)}</span></div>
+        <div class="h-2 rounded-full bg-slate-800 mt-1 overflow-hidden"><div class="h-full bg-yellow-500" style="width:${pct}%"></div></div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="space-y-2">';
+  (data.skills||[]).forEach(s => {
+    if (s.key === 'unlock_infantry') {
+      html += `<div class="card rounded-xl p-3 opacity-80">
+        <div class="flex justify-between"><b>${s.name}</b><span class="text-green-400 text-sm">باز (پیش‌فرض)</span></div>
+        <p class="text-xs text-slate-400 mt-1">${s.desc}</p>
+      </div>`;
+      return;
+    }
+    const stars = '★'.repeat(s.level) + '☆'.repeat(Math.max(0, s.max - s.level));
+    let action = '';
+    if (s.maxed) {
+      action = '<span class="text-green-400 text-xs">کامل</span>';
+    } else if (s.upgrading) {
+      action = `<span class="text-yellow-400 text-xs">⏳ ${fmtSec(s.upgrading.remaining_seconds)}</span>`;
+    } else {
+      action = `<button onclick="upgradeSkill('${s.key}')" class="btn text-xs px-3 py-1 rounded">ارتقای ${s.next_cost}$ / ${fmtSec(s.next_duration_seconds||0)}</button>`;
+    }
+    html += `<div class="card rounded-xl p-3">
+      <div class="flex justify-between items-start gap-2">
+        <div>
+          <b>${s.name}</b>
+          <p class="text-xs text-slate-400 mt-1">${s.desc}</p>
+          <p class="text-xs text-blue-400 mt-1">${stars} | ${s.effect_text}</p>
+        </div>
+        <div class="text-left shrink-0">${action}</div>
+      </div>
+    </div>`;
+  });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+async function upgradeSkill(key){
+  try{
+    const d = await api('/api/skills/upgrade',{method:'POST',body:JSON.stringify({skill_key:key})});
+    alert(d.message + '\\nزمان: ' + Math.floor((d.remaining_seconds||0)/60) + ' دقیقه');
+    await loadMy();
+    skillsPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+
+async function worldPage(el){
+  el.innerHTML='بارگذاری...';
+  try{
+    const [events, diplos, achievements, players, ranks] = await Promise.all([
+      api('/api/events').catch(()=>[]),
+      api('/api/diplomacy').catch(()=>[]),
+      api('/api/achievements').catch(()=>({all:[]})),
+      api('/api/players').catch(()=>[]),
+      api('/api/alliance-rank').catch(()=>[])
+    ]);
+    let html = '<h2 class="font-bold text-lg mb-3">🌐 جهان</h2>';
+
+    // دستاوردها
+    html += '<div class="card rounded-xl p-3 mb-3"><b class="text-yellow-400">🏅 دستاوردها</b><div class="mt-2 flex flex-wrap gap-2">';
+    (achievements.all||[]).forEach(a=>{
+      html += `<span class="text-xs px-2 py-1 rounded-full ${a.done?'bg-yellow-600 text-white':'bg-slate-800 text-slate-400'}">${a.done?'✓ ':''}${a.title}</span>`;
+    });
+    html += '</div></div>';
+
+    // رویدادها
+    html += '<div class="card rounded-xl p-3 mb-3"><b class="text-green-400">🌍 رویدادهای جهانی</b>';
+    if(!events.length) html += '<p class="text-xs text-slate-500 mt-2">هنوز رویدادی رخ نداده</p>';
+    else events.slice(0,5).forEach(e=>{
+      html += `<div class="mt-2 text-sm bg-slate-800 rounded p-2"><b>${e.title}</b><p class="text-xs text-slate-400">${e.text}</p></div>`;
+    });
+    html += '</div>';
+
+    // دیپلماسی
+    html += '<div class="card rounded-xl p-3 mb-3"><b class="text-blue-400">📜 دیپلماسی</b>';
+    html += `<select id="dipTarget" class="w-full p-2 rounded mt-2 text-sm"><option value="">کشور هدف</option>${
+      players.filter(p=>p.username!==user.username).map(p=>`<option value="${p.id}">${p.flag} ${p.name}</option>`).join('')
+    }</select>
+    <div class="grid grid-cols-3 gap-1 mt-2">
+      <button onclick="doDiplo('war')" class="btn-r py-2 rounded text-xs">اعلام جنگ ۳۰$</button>
+      <button onclick="doDiplo('ceasefire')" class="btn py-2 rounded text-xs">آتش‌بس ۵۰$</button>
+      <button onclick="doDiplo('nap')" class="btn-g py-2 rounded text-xs">عدم تجاوز ۸۰$</button>
+    </div>`;
+    if(diplos.length){
+      html += '<div class="mt-2 space-y-1">';
+      diplos.forEach(d=>{
+        const label = d.type==='war'?'⚔️ جنگ':d.type==='nap'?'🤝 عدم تجاوز':'🕊️ آتش‌بس';
+        html += `<p class="text-xs">${label}: ${d.country1_flag||''}${d.country1_name} ↔ ${d.country2_flag||''}${d.country2_name}</p>`;
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // جاسوسی
+    html += '<div class="card rounded-xl p-3 mb-3"><b class="text-purple-400">🕵️ جاسوسی (۴۰$)</b>';
+    html += `<select id="spyTarget" class="w-full p-2 rounded mt-2 text-sm"><option value="">هدف</option>${
+      players.filter(p=>p.username!==user.username).map(p=>`<option value="${p.id}">${p.flag} ${p.name}</option>`).join('')
+    }</select>
+    <button onclick="doSpy()" class="btn w-full mt-2 py-2 rounded text-sm">اجرای عملیات جاسوسی</button>
+    <div id="spyResult" class="mt-2 text-sm"></div></div>`;
+
+    // رتبه اتحاد
+    html += '<div class="card rounded-xl p-3 mb-3"><b class="text-orange-400">🏆 رتبه اتحادها</b>';
+    if(!ranks.length) html += '<p class="text-xs text-slate-500 mt-2">اتحادی نیست</p>';
+    else ranks.forEach((r,i)=>{
+      html += `<div class="flex justify-between text-sm mt-2 bg-slate-800 rounded p-2">
+        <span>${i+1}. ${r.name} (${r.member_count} عضو)</span>
+        <span class="text-red-400">⚔️${r.total_power}</span>
+      </div>`;
+    });
+    html += '</div>';
+
+    el.innerHTML = html;
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+async function doDiplo(type){
+  const target = document.getElementById('dipTarget').value;
+  if(!target){alert('هدف را انتخاب کنید');return}
+  try{
+    // players list uses pc id - diplomacy expects country - send player country id as target
+    await api('/api/diplomacy',{method:'POST',body:JSON.stringify({type, target_country_id: target})});
+    alert('ثبت شد');
+    worldPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+async function doSpy(){
+  const target = document.getElementById('spyTarget').value;
+  if(!target){alert('هدف را انتخاب کنید');return}
+  try{
+    const d = await api('/api/spy',{method:'POST',body:JSON.stringify({target_player_country_id: target})});
+    const box = document.getElementById('spyResult');
+    if(!d.success){
+      box.innerHTML = `<p class="text-red-400">${d.message}</p>`;
+      return;
+    }
+    const i = d.intel;
+    box.innerHTML = `<div class="bg-slate-800 rounded p-2">
+      <b>${i.flag} ${i.country}</b>
+      <p>بودجه: ${i.budget}$ | درآمد: ${i.income}$ | قدرت: ${i.military_power}</p>
+      <p class="text-xs mt-1">${(i.equipment||[]).map(e=>e.name+'×'+e.quantity).join('، ')||'تجهیزات نامشخص'}</p>
+      ${d.detected?'<p class="text-red-400 text-xs mt-1">⚠ لو رفتید!</p>':''}
+    </div>`;
+    await loadMy();
+  }catch(e){alert(e.message)}
+}
+
+
+async function prodPage(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  el.innerHTML='بارگذاری کارخانه...';
+  try{
+    const data = await api('/api/production');
+    if(!data.unlocked){
+      el.innerHTML = `<h2 class="font-bold mb-3">🏭 تولید</h2>
+        <div class="card rounded-xl p-4 text-center">
+          <p class="text-red-400 mb-2">🔒 قفل است</p>
+          <p class="text-sm text-slate-400">از درخت مهارت، «باز کردن کارخانه» را ارتقا دهید.</p>
+          <button onclick="page('skills')" class="btn mt-3 px-4 py-2 rounded">رفتن به مهارت‌ها</button>
+        </div>`;
+      return;
+    }
+    let html = `<h2 class="font-bold mb-2">🏭 کارخانه تولید</h2>
+      <p class="text-sm text-slate-400 mb-2">بودجه: <b class="text-green-400">${data.budget}$</b> | تجهیزات کشور شما</p>`;
+    if((data.queue||[]).length){
+      html += '<div class="card rounded-xl p-3 mb-3 border border-yellow-500/40"><b class="text-yellow-400">⏳ صف تولید</b>';
+      data.queue.forEach(j=>{
+        html += `<div class="text-sm mt-2 flex justify-between"><span>${j.name} ×${j.quantity||1}</span><span>${fmtDuration(j.remaining_seconds)}</span></div>`;
+      });
+      html += '</div>';
+    }
+    html += '<h3 class="font-bold text-sm mb-2">ساخت استاندارد</h3><div class="space-y-2 mb-4">';
+    (data.catalog||[]).forEach(e=>{
+      html += `<div class="card rounded-xl p-3 flex justify-between items-center text-sm">
+        <div><b>${e.name}</b><p class="text-xs text-slate-400">${typeLabel(e.type)} +${e.power}${e.consumable?' | یک‌بارمصرف':''}</p>
+        <p class="text-xs text-yellow-400">${e.cost}$ | ${fmtDuration(e.duration_seconds)}</p></div>
+        <button onclick="prodBuild('${e.id}')" class="btn text-xs px-2 py-1 rounded">ساخت</button>
+      </div>`;
+    });
+    html += '</div>';
+
+    if(data.design_unlocked){
+      html += `<div class="card rounded-xl p-3 mb-3"><b class="text-purple-400">✏️ طراحی سفارشی</b>
+        <input id="dn" placeholder="نام نیرو" class="w-full p-2 rounded mt-2 text-sm">
+        <select id="dt" class="w-full p-2 rounded mt-2 text-sm">
+          <option value="jet">جت</option><option value="land">تانک</option><option value="sea">دریایی</option>
+          <option value="defense">پدافند</option><option value="missile">موشک</option>
+          <option value="drone">پهپاد</option><option value="infantry">پیاده</option>
+        </select>
+        <input id="dp" type="number" min="5" max="200" value="30" placeholder="قدرت" class="w-full p-2 rounded mt-2 text-sm">
+        <p id="dest" class="text-xs text-yellow-400 mt-1">برآورد هزینه/زمان با تغییر قدرت...</p>
+        <label class="text-xs flex gap-2 mt-2 items-center"><input type="checkbox" id="dsave" checked> ذخیره به عنوان طرح</label>
+        <button onclick="prodDesign()" class="btn-g w-full mt-2 py-2 rounded text-sm">شروع ساخت سفارشی</button>
+      </div>`;
+      if((data.blueprints||[]).length){
+        html += '<h3 class="font-bold text-sm mb-2">طرح‌های ذخیره‌شده</h3><div class="space-y-2">';
+        data.blueprints.forEach(b=>{
+          html += `<div class="card rounded-xl p-2 flex justify-between text-sm">
+            <span>${b.name} (${typeLabel(b.type)} +${b.power})</span>
+            <button onclick="prodFromBp('${b.id}')" class="btn text-xs px-2 py-1 rounded">ساخت مجدد</button>
+          </div>`;
+        });
+        html += '</div>';
+      }
+    } else {
+      html += `<div class="card rounded-xl p-3 text-center text-sm text-slate-400">🔒 طراحی سفارشی قفل — از درخت مهارت باز کنید</div>`;
+    }
+    el.innerHTML = html;
+    const dp = document.getElementById('dp');
+    if(dp){
+      const upd = async()=>{
+        try{
+          const d = await api('/api/production/design',{method:'POST',body:JSON.stringify({name:'x',type:dt.value,power:+dp.value,estimate_only:true})});
+          dest.textContent = 'برآورد: ' + d.cost + '$ | ' + Math.floor(d.duration_seconds/60) + ' دقیقه ' + (d.duration_seconds%60) + 'ثانیه';
+        }catch(e){}
+      };
+      dp.onchange = upd; dp.oninput = upd; dt.onchange = upd; upd();
+    }
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+async function prodBuild(id){
+  try{
+    const d = await api('/api/production/build',{method:'POST',body:JSON.stringify({equipment_id:id,quantity:1})});
+    alert('ساخت شروع شد\\nهزینه: '+d.cost+'$\\nزمان: '+Math.floor(d.duration_seconds/60)+' دقیقه');
+    await loadMy(); prodPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+async function prodDesign(){
+  try{
+    const d = await api('/api/production/design',{method:'POST',body:JSON.stringify({
+      name: dn.value.trim(), type: dt.value, power: +dp.value,
+      save_blueprint: document.getElementById('dsave').checked
+    })});
+    alert('طراحی در صف تولید\\n'+d.cost+'$ | '+Math.floor(d.duration_seconds/60)+'د');
+    await loadMy(); prodPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+async function prodFromBp(id){
+  try{
+    const d = await api('/api/production/from-blueprint',{method:'POST',body:JSON.stringify({blueprint_id:id})});
+    alert('ساخت از طرح شروع شد: '+d.cost+'$');
+    await loadMy(); prodPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+
+async function marketPage(el){
+  if(!my){el.innerHTML='<p class="text-center text-slate-400">اول کشور بگیرید</p>';return}
+  el.innerHTML='بارگذاری بازار سیاه...';
+  try{
+    const [listings, arsenal] = await Promise.all([api('/api/blackmarket'), api('/api/my-arsenal')]);
+    let html = `<h2 class="font-bold mb-2">🕶️ بازار سیاه</h2>
+      <p class="text-xs text-slate-400 mb-3">یونیت‌های سفارشی در فروشگاه نیستند — اینجا بفروشید. خرید از بازیکنان دیگر.</p>
+      <div class="card rounded-xl p-3 mb-3">
+        <b class="text-sm">ثبت آگهی فروش</b>
+        <select id="bmEq" class="w-full p-2 rounded mt-2 text-sm"><option value="">انتخاب تجهیز</option>
+        ${(arsenal.equipment||[]).map(e=>`<option value="${e.equipment_id}" data-max="${e.quantity}">${e.name} (×${e.quantity})</option>`).join('')}
+        </select>
+        <div class="flex gap-2 mt-2">
+          <input id="bmQty" type="number" min="1" value="1" placeholder="تعداد" class="w-1/3 p-2 rounded text-sm">
+          <input id="bmPrice" type="number" min="1" placeholder="قیمت کل $" class="flex-1 p-2 rounded text-sm">
+        </div>
+        <button onclick="bmList()" class="btn-g w-full mt-2 py-2 rounded text-sm">ثبت در بازار سیاه</button>
+      </div>
+      <h3 class="font-bold text-sm mb-2">آگهی‌های باز</h3>
+      <div class="space-y-2">`;
+    if(!listings.length) html += '<p class="text-slate-500 text-sm">آگهی‌ای نیست</p>';
+    listings.forEach(l=>{
+      const mine = l.seller_username === user.username;
+      html += `<div class="card rounded-xl p-3 text-sm">
+        <div class="flex justify-between">
+          <div>
+            <b>${l.name}</b> ${l.custom?'<span class="text-purple-400 text-xs">سفارشی</span>':''}
+            <p class="text-xs text-slate-400">${typeLabel(l.type)} +${l.power} | ×${l.quantity}</p>
+            <p class="text-xs">فروشنده: ${l.seller_flag||''} ${l.seller_country} (${l.seller_username})</p>
+          </div>
+          <div class="text-left">
+            <b class="text-green-400">${l.price}$</b><br>
+            ${mine
+              ? `<button onclick="bmCancel('${l.id}')" class="btn-r text-xs px-2 py-1 rounded mt-1">لغو</button>`
+              : `<button onclick="bmBuy('${l.id}')" class="btn text-xs px-2 py-1 rounded mt-1">خرید</button>`}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }catch(e){el.innerHTML=`<p class="text-red-400">${e.message}</p>`}
+}
+
+async function bmList(){
+  const equipment_id = bmEq.value;
+  const quantity = +bmQty.value||1;
+  const price = +bmPrice.value||0;
+  if(!equipment_id||price<1){alert('تجهیز و قیمت را مشخص کنید');return}
+  try{
+    await api('/api/blackmarket/list',{method:'POST',body:JSON.stringify({equipment_id,quantity,price})});
+    alert('آگهی ثبت شد');
+    await loadMy();
+    marketPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+async function bmBuy(id){
+  if(!confirm('خرید این آگهی؟')) return;
+  try{
+    await api('/api/blackmarket/buy',{method:'POST',body:JSON.stringify({listing_id:id})});
+    alert('خرید شد');
+    await loadMy();
+    marketPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+async function bmCancel(id){
+  try{
+    await api('/api/blackmarket/cancel',{method:'POST',body:JSON.stringify({listing_id:id})});
+    alert('آگهی لغو و نیرو برگشت');
+    await loadMy();
+    marketPage(document.getElementById('main'));
+  }catch(e){alert(e.message)}
+}
+
+if(token&&user)start();
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
